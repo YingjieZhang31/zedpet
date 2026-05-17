@@ -2,8 +2,8 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-constexpr const char* WIFI_SSID = "your-ssid";
-constexpr const char* WIFI_PASS = "your-password";
+// WIFI_SSID / WIFI_PASS come from PlatformIO build_flags via env vars.
+// Set before building:  export WIFI_SSID="..." WIFI_PASS="..."
 constexpr int UDP_PORT = 19820;
 
 void udpServerBegin();
