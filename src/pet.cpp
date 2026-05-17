@@ -11,7 +11,7 @@ constexpr int SPRITE_X = (SCREEN_W - CHAR_DRAW_W) / 2;  // 96
 constexpr int SPRITE_Y = ((SCREEN_H - CHAR_DRAW_H) + 1) / 2;  // 44
 
 // Helper to get display reference
-static M5Canvas& display() { return M5Cardputer.Display; }
+static decltype(M5Cardputer.Display)& display() { return M5Cardputer.Display; }
 
 void Pet::begin() {
     setState(PetState::IDLE);
@@ -116,8 +116,6 @@ void Pet::update() {
 
     // Character centered
     drawCharacter();
-
-    display().pushSprite(0, 0);
 }
 
 void Pet::drawSprite16(int x, int y, const uint16_t* data) {
