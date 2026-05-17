@@ -1,6 +1,7 @@
 #include "pet.h"
 #include "sprites.h"
 #include <M5Cardputer.h>
+#include <cstring>
 
 // Screen dimensions
 constexpr int SCREEN_W = 240;
@@ -17,6 +18,22 @@ void Pet::begin() {
     canvas.setColorDepth(16);
     canvas.createSprite(SCREEN_W, SCREEN_H);
     setState(PetState::IDLE);
+}
+
+void Pet::receiveCommand(const char* cmd) {
+    PetState newState = PetState::IDLE;
+
+    if (strcmp(cmd, "idle") == 0)      newState = PetState::IDLE;
+    else if (strcmp(cmd, "happy") == 0)  newState = PetState::HAPPY;
+    else if (strcmp(cmd, "sleep") == 0)  newState = PetState::SLEEP;
+    else if (strcmp(cmd, "talk") == 0)   newState = PetState::TALK;
+    else if (strcmp(cmd, "stretch") == 0) newState = PetState::STRETCH;
+    else if (strcmp(cmd, "look") == 0)  newState = PetState::LOOK;
+    else return;  // unknown command
+
+    setState(newState);
+
+    Serial.printf("[PET] cmd=%s -> %s\n", cmd, stateName(newState));
 }
 
 void Pet::setState(PetState newState) {
@@ -73,15 +90,8 @@ const char* Pet::stateName(PetState s) const {
 }
 
 void Pet::update() {
-    unsigned long now = millis();
-
-    // Check if state duration expired → switch to next state
-    if (now - stateStartTime >= stateDuration) {
-        nextState();
-        return;  // setState reset our timers, draw next frame
-    }
-
     // Advance animation frame
+    unsigned long now = millis();
     if (now - lastFrameTime >= frameInterval) {
         lastFrameTime = now;
         frameIndex++;

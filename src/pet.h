@@ -14,6 +14,7 @@ enum class PetState : uint8_t {
 class Pet {
 public:
     void begin();
+    void receiveCommand(const char* cmd);  // map string to PetState
     void update();  // call every frame from loop()
 
 private:
