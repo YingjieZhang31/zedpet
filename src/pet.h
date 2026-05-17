@@ -1,5 +1,5 @@
 #pragma once
-#include <M5Cardputer.h>
+#include <cstdint>
 
 enum class PetState : uint8_t {
     IDLE,
@@ -8,7 +8,7 @@ enum class PetState : uint8_t {
     TALK,
     STRETCH,
     LOOK,
-    STATE_COUNT
+    STATE_COUNT  // must be last — used for iteration bounds
 };
 
 class Pet {
