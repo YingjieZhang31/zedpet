@@ -10,10 +10,12 @@ constexpr int SCREEN_H = 135;
 constexpr int SPRITE_X = (SCREEN_W - CHAR_DRAW_W) / 2;  // 96
 constexpr int SPRITE_Y = ((SCREEN_H - CHAR_DRAW_H) + 1) / 2;  // 44
 
-// Helper to get display reference
-static decltype(M5Cardputer.Display)& display() { return M5Cardputer.Display; }
+// Offscreen canvas for double-buffered rendering
+static M5Canvas canvas(&M5Cardputer.Display);
 
 void Pet::begin() {
+    canvas.setColorDepth(16);
+    canvas.createSprite(SCREEN_W, SCREEN_H);
     setState(PetState::IDLE);
 }
 
@@ -106,16 +108,18 @@ void Pet::update() {
     }
 
     // Draw frame
-    display().fillScreen(TFT_BLACK);
+    canvas.fillScreen(TFT_BLACK);
 
     // State name at top-left
-    display().setTextColor(TFT_WHITE);
-    display().setTextSize(2);
-    display().setCursor(4, 2);
-    display().print(stateName(state));
+    canvas.setTextColor(TFT_WHITE);
+    canvas.setTextSize(2);
+    canvas.setCursor(4, 2);
+    canvas.print(stateName(state));
 
     // Character centered
     drawCharacter();
+
+    canvas.pushSprite(0, 0);
 }
 
 void Pet::drawSprite16(int x, int y, const uint16_t* data) {
@@ -123,7 +127,7 @@ void Pet::drawSprite16(int x, int y, const uint16_t* data) {
         for (int px = 0; px < CHAR_W; px++) {
             uint16_t color = data[py * CHAR_W + px];
             if (color != _) {  // skip transparent (magenta) pixels
-                display().fillRect(x + px * CHAR_SCALE, y + py * CHAR_SCALE,
+                canvas.fillRect(x + px * CHAR_SCALE, y + py * CHAR_SCALE,
                                CHAR_SCALE, CHAR_SCALE, color);
             }
         }
