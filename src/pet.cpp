@@ -1,5 +1,6 @@
 #include "pet.h"
 #include "sprites.h"
+#include "udp_server.h"
 #include <M5Cardputer.h>
 #include <cstring>
 
@@ -100,6 +101,14 @@ void Pet::update() {
     canvas.setTextSize(2);
     canvas.setCursor(4, 2);
     canvas.print(stateName(state));
+
+    // WiFi status at top-right
+    if (udpIsWiFiConnected()) {
+        canvas.setTextColor(rgb565(0, 255, 0));
+        canvas.setTextSize(1);
+        canvas.setCursor(SCREEN_W - 54, 4);
+        canvas.print("WiFi OK");
+    }
 
     // Character centered
     drawCharacter();

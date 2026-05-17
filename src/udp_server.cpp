@@ -22,6 +22,10 @@ void udpServerBegin() {
     }
 }
 
+bool udpIsWiFiConnected() {
+    return WiFi.status() == WL_CONNECTED;
+}
+
 const char* udpCheckCommand() {
     if (WiFi.status() != WL_CONNECTED) return nullptr;
 

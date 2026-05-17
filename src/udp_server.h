@@ -9,3 +9,4 @@ constexpr int UDP_PORT = 19820;
 void udpServerBegin();
 const char* udpCheckCommand();  // returns cmd string or nullptr
 void udpSendAck(const char* cmd);
+bool udpIsWiFiConnected();
