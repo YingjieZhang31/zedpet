@@ -102,12 +102,14 @@ void Pet::update() {
     canvas.setCursor(4, 2);
     canvas.print(stateName(state));
 
-    // WiFi status at top-right
+    // WiFi IP at top-right
     if (udpIsWiFiConnected()) {
+        const char* ip = udpGetLocalIP();
         canvas.setTextColor(rgb565(0, 255, 0));
         canvas.setTextSize(1);
-        canvas.setCursor(SCREEN_W - 54, 4);
-        canvas.print("WiFi OK");
+        int ipW = canvas.textWidth(ip);
+        canvas.setCursor(SCREEN_W - ipW - 4, 4);
+        canvas.print(ip);
     }
 
     // Character centered

@@ -26,6 +26,16 @@ bool udpIsWiFiConnected() {
     return WiFi.status() == WL_CONNECTED;
 }
 
+const char* udpGetLocalIP() {
+    static char ipStr[16];
+    if (WiFi.status() == WL_CONNECTED) {
+        strcpy(ipStr, WiFi.localIP().toString().c_str());
+    } else {
+        ipStr[0] = '\0';
+    }
+    return ipStr;
+}
+
 const char* udpCheckCommand() {
     if (WiFi.status() != WL_CONNECTED) return nullptr;
 
