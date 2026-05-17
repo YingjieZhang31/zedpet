@@ -8,7 +8,7 @@ constexpr int SCREEN_H = 135;
 
 // Sprite centered on screen
 constexpr int SPRITE_X = (SCREEN_W - CHAR_DRAW_W) / 2;  // 96
-constexpr int SPRITE_Y = (SCREEN_H - CHAR_DRAW_H) / 2;  // 44
+constexpr int SPRITE_Y = ((SCREEN_H - CHAR_DRAW_H) + 1) / 2;  // 44
 
 // Helper to get display reference
 static M5Canvas& display() { return M5Cardputer.Display; }
@@ -21,7 +21,7 @@ void Pet::setState(PetState newState) {
     state = newState;
     frameIndex = 0;
     stateStartTime = millis();
-    lastFrameTime = 0;  // force immediate first frame
+    lastFrameTime = millis();  // draw frame 0 first
 
     switch (state) {
         case PetState::IDLE:
