@@ -10,6 +10,9 @@ compile_commands.json
 # IDE
 .vscode/
 
+# Python
+__pycache__/
+
 # OS files
 .DS_Store
 Thumbs.db
