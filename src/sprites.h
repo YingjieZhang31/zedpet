@@ -8,17 +8,22 @@ constexpr int CHAR_SCALE = 3;
 constexpr int CHAR_DRAW_W = CHAR_W * CHAR_SCALE;  // 48
 constexpr int CHAR_DRAW_H = CHAR_H * CHAR_SCALE;  // 48
 
+// RGB565 color helper
+constexpr uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b) {
+    return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+}
+
 // Color palette — OpenClaw lobster
-constexpr uint16_t _ = 0x0000;                    // Transparent (never drawn)
+constexpr uint16_t _ = rgb565(255, 0, 255);       // Magenta = transparent
 constexpr uint16_t K = 0x0000;                    // Black outline
 constexpr uint16_t W = 0xFFFF;                    // White eyes
-constexpr uint16_t R = 0xC128;                    // Red main body (210,50,40)
-constexpr uint16_t D = 0xA0C3;                    // Dark red shadow (160,30,25)
-constexpr uint16_t H = 0xFA2A;                    // Highlight red (240,100,80)
-constexpr uint16_t O = 0xE46C;                    // Orange claws inner (230,140,60)
-constexpr uint16_t E = 0x1082;                    // Eye pupil (20,20,20)
-constexpr uint16_t C = 0xC123;                    // Claw red (190,40,35)
-constexpr uint16_t T = 0xC30A;                    // Tail/legs (180,60,50)
+constexpr uint16_t R = rgb565(210, 50, 40);       // Red main body
+constexpr uint16_t D = rgb565(160, 30, 25);       // Dark red shadow
+constexpr uint16_t H = rgb565(240, 100, 80);      // Highlight red
+constexpr uint16_t O = rgb565(230, 140, 60);      // Orange claws inner
+constexpr uint16_t E = rgb565(20, 20, 20);        // Eye pupil
+constexpr uint16_t C = rgb565(190, 40, 35);       // Claw red
+constexpr uint16_t T = rgb565(180, 60, 50);       // Tail/legs
 
 // ── Idle frame 1: eyes open, claws down ──
 const uint16_t sprite_idle1[CHAR_W * CHAR_H] = {
