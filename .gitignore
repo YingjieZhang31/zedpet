@@ -1,0 +1,15 @@
+# PlatformIO build output
+.pio/
+
+# clangd index cache
+.cache/
+
+# Compilation database (generated, machine-specific paths)
+compile_commands.json
+
+# IDE
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
