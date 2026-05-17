@@ -39,42 +39,17 @@ void Pet::receiveCommand(const char* cmd) {
 void Pet::setState(PetState newState) {
     state = newState;
     frameIndex = 0;
-    stateStartTime = millis();
     lastFrameTime = millis();  // draw frame 0 first
 
     switch (state) {
-        case PetState::IDLE:
-            frameInterval = 500;
-            stateDuration = 3000;
-            break;
-        case PetState::HAPPY:
-            frameInterval = 200;
-            stateDuration = 1500;
-            break;
-        case PetState::SLEEP:
-            frameInterval = 1000;
-            stateDuration = 2000;
-            break;
-        case PetState::TALK:
-            frameInterval = 250;
-            stateDuration = 2000;
-            break;
-        case PetState::STRETCH:
-            frameInterval = 400;
-            stateDuration = 2000;
-            break;
-        case PetState::LOOK:
-            frameInterval = 300;
-            stateDuration = 3000;
-            break;
-        default:
-            break;
+        case PetState::IDLE:    frameInterval = 500; break;
+        case PetState::HAPPY:   frameInterval = 200; break;
+        case PetState::SLEEP:   frameInterval = 1000; break;
+        case PetState::TALK:    frameInterval = 250; break;
+        case PetState::STRETCH: frameInterval = 400; break;
+        case PetState::LOOK:    frameInterval = 300; break;
+        default: break;
     }
-}
-
-void Pet::nextState() {
-    int next = (static_cast<int>(state) + 1) % static_cast<int>(PetState::STATE_COUNT);
-    setState(static_cast<PetState>(next));
 }
 
 const char* Pet::stateName(PetState s) const {
@@ -150,17 +125,17 @@ void Pet::drawCharacter() {
     switch (state) {
         case PetState::IDLE:
         case PetState::LOOK:
-            frame = idle_frames[frameIndex % IDLE_FRAME_COUNT];
+            frame = idle_frames[frameIndex];
             break;
         case PetState::HAPPY:
         case PetState::STRETCH:
-            frame = happy_frames[frameIndex % HAPPY_FRAME_COUNT];
+            frame = happy_frames[frameIndex];
             break;
         case PetState::SLEEP:
-            frame = sleep_frames[frameIndex % SLEEP_FRAME_COUNT];
+            frame = sleep_frames[frameIndex];
             break;
         case PetState::TALK:
-            frame = talk_frames[frameIndex % TALK_FRAME_COUNT];
+            frame = talk_frames[frameIndex];
             break;
     }
 
