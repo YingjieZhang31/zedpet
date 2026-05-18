@@ -1,4 +1,5 @@
 #include "udp_server.h"
+#include <sys/time.h>
 #include <time.h>
 
 static WiFiUDP udp;
@@ -28,7 +29,12 @@ void udpServerBegin() {
             timeSynced = true;
             Serial.printf("[UDP] Time synced: %02d:%02d\n", ti.tm_hour, ti.tm_min);
         } else {
-            Serial.println("[UDP] NTP sync failed");
+            // No internet — start from 00:00
+            Serial.println("[UDP] NTP sync failed, starting from 00:00");
+            struct timeval tv = {};
+            tv.tv_sec = 8 * 3600;  // midnight UTC+8
+            settimeofday(&tv, nullptr);
+            timeSynced = true;
         }
     } else {
         Serial.println("\n[UDP] WiFi connection failed!");
@@ -92,7 +98,7 @@ void udpSendAck(const char* cmd) {
 const char* udpGetCurrentTime() {
     static char timeStr[6];
     struct tm ti;
-    if (timeSynced && getLocalTime(&ti, 0)) {
+    if (getLocalTime(&ti, 0)) {
         snprintf(timeStr, sizeof(timeStr), "%02d:%02d", ti.tm_hour, ti.tm_min);
     } else {
         timeStr[0] = '\0';
