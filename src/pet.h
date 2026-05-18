@@ -15,6 +15,7 @@ class Pet {
 public:
     void begin();
     void receiveCommand(const char* cmd);  // map string to PetState
+    void nextState();  // cycle to next state (IDLE→HAPPY→...→IDLE)
     void update();  // call every frame from loop()
 
 private:

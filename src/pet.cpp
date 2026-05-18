@@ -37,6 +37,11 @@ void Pet::receiveCommand(const char* cmd) {
     Serial.printf("[PET] cmd=%s -> %s\n", cmd, stateName(newState));
 }
 
+void Pet::nextState() {
+    int next = (static_cast<int>(state) + 1) % static_cast<int>(PetState::STATE_COUNT);
+    setState(static_cast<PetState>(next));
+}
+
 void Pet::setState(PetState newState) {
     state = newState;
     frameIndex = 0;
