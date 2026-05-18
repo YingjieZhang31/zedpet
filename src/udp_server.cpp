@@ -1,7 +1,9 @@
 #include "udp_server.h"
+#include <time.h>
 
 static WiFiUDP udp;
 static char packetBuffer[256];
+static bool timeSynced = false;
 
 void udpServerBegin() {
     WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -17,6 +19,17 @@ void udpServerBegin() {
         Serial.printf("\n[UDP] Connected! IP: %s\n", WiFi.localIP().toString().c_str());
         udp.begin(UDP_PORT);
         Serial.printf("[UDP] Listening on port %d\n", UDP_PORT);
+
+        // NTP time sync (UTC+8)
+        configTime(8 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+        Serial.println("[UDP] Syncing time via NTP...");
+        struct tm ti;
+        if (getLocalTime(&ti, 5000)) {
+            timeSynced = true;
+            Serial.printf("[UDP] Time synced: %02d:%02d\n", ti.tm_hour, ti.tm_min);
+        } else {
+            Serial.println("[UDP] NTP sync failed");
+        }
     } else {
         Serial.println("\n[UDP] WiFi connection failed!");
     }
@@ -74,4 +87,15 @@ void udpSendAck(const char* cmd) {
     udp.endPacket();
 
     Serial.printf("[UDP] Sent ACK: %s\n", ack);
+}
+
+const char* udpGetCurrentTime() {
+    static char timeStr[6];
+    struct tm ti;
+    if (timeSynced && getLocalTime(&ti, 0)) {
+        snprintf(timeStr, sizeof(timeStr), "%02d:%02d", ti.tm_hour, ti.tm_min);
+    } else {
+        timeStr[0] = '\0';
+    }
+    return timeStr;
 }

@@ -11,3 +11,4 @@ const char* udpCheckCommand();  // returns cmd string or nullptr
 void udpSendAck(const char* cmd);
 bool udpIsWiFiConnected();
 const char* udpGetLocalIP();
+const char* udpGetCurrentTime();  // NTP-synced current time, HH:MM format

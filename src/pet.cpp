@@ -107,6 +107,16 @@ void Pet::update() {
     canvas.setCursor(4, 2);
     canvas.print(stateName(state));
 
+    // Current time at top center
+    const char* t = udpGetCurrentTime();
+    if (t[0] != '\0') {
+        canvas.setTextColor(rgb565(180, 180, 200));
+        canvas.setTextSize(2);
+        int tw = canvas.textWidth(t);
+        canvas.setCursor((SCREEN_W - tw) / 2, 2);
+        canvas.print(t);
+    }
+
     // WiFi status at top-right
     if (udpIsWiFiConnected()) {
         const char* ip = udpGetLocalIP();
