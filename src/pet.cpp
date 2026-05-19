@@ -1,8 +1,11 @@
 #include "pet.h"
 #include "sprites.h"
 #include "udp_server.h"
+#include "weather.h"
 #include <M5Cardputer.h>
 #include <cstring>
+
+#define C(r,g,b) rgb565(r,g,b)
 
 // Screen dimensions
 constexpr int SCREEN_W = 240;
@@ -98,8 +101,8 @@ void Pet::update() {
         }
     }
 
-    // Draw frame
-    canvas.fillScreen(TFT_BLACK);
+    // Draw weather layer (sky + particles + ground)
+    weatherDraw(canvas);
 
     // State name at top-left
     canvas.setTextColor(TFT_WHITE);
@@ -187,4 +190,39 @@ void Pet::drawCharacter() {
     }
 
     drawSprite16(SPRITE_X + xOffset, SPRITE_Y + yOffset, frame);
+    drawAccessory(SPRITE_X + xOffset, SPRITE_Y + yOffset);
+}
+
+void Pet::drawAccessory(int x, int y) {
+    AccessoryType acc = weatherGetAccessory();
+    if (acc == AccessoryType::NONE) return;
+
+    switch (acc) {
+        case AccessoryType::SUNGLASSES: {
+            uint16_t g = C(20, 20, 40);
+            canvas.fillRect(x + 12, y + 15, 9, 3, g);
+            canvas.fillRect(x + 27, y + 15, 9, 3, g);
+            canvas.drawFastHLine(x + 21, y + 16, 6, g);
+            break;
+        }
+        case AccessoryType::UMBRELLA: {
+            canvas.fillRoundRect(x + 6, y - 10, 36, 8, 4, C(60, 60, 200));
+            canvas.drawFastVLine(x + 24, y - 2, 8, C(120, 80, 40));
+            break;
+        }
+        case AccessoryType::SNOW_HAT: {
+            canvas.fillRoundRect(x + 9, y + 3, 30, 6, 3, C(200, 60, 60));
+            canvas.fillCircle(x + 24, y + 2, 3, 0xFFFF);
+            break;
+        }
+        case AccessoryType::MASK: {
+            uint16_t mask = C(180, 200, 180);
+            uint16_t strap = C(120, 120, 120);
+            canvas.fillRect(x + 12, y + 21, 24, 6, mask);
+            canvas.drawFastHLine(x + 9, y + 23, 3, strap);
+            canvas.drawFastHLine(x + 36, y + 23, 3, strap);
+            break;
+        }
+        default: break;
+    }
 }

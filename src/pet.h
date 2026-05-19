@@ -27,5 +27,6 @@ private:
     void setState(PetState newState);
     void drawSprite16(int x, int y, const uint16_t* data);
     void drawCharacter();
+    void drawAccessory(int x, int y);
     const char* stateName(PetState s) const;
 };
