@@ -1,22 +1,41 @@
 #include "pet.h"
+#include "config.h"
 #include "sprites.h"
 #include "udp_server.h"
 #include "weather.h"
 #include <M5Cardputer.h>
 #include <cstring>
 
-#define C(r,g,b) rgb565(r,g,b)
+// ===== State configuration (replaces scattered switch statements) =====
+static constexpr StateConfig STATE_CONFIGS[] = {
+    {500, 4},   // IDLE
+    {200, 2},   // HAPPY
+    {1000, 1},  // SLEEP
+    {250, 2},   // TALK
+    {400, 2},   // STRETCH
+    {300, 4},   // LOOK
+};
+static_assert(static_cast<int>(PetState::STATE_COUNT) == 6, "STATE_CONFIGS out of sync");
 
-// Screen dimensions
-constexpr int SCREEN_W = 240;
-constexpr int SCREEN_H = 135;
+// ===== Command-to-state lookup table =====
+static constexpr struct { const char* name; PetState state; } CMD_MAP[] = {
+    {"idle",    PetState::IDLE},
+    {"happy",   PetState::HAPPY},
+    {"sleep",   PetState::SLEEP},
+    {"talk",    PetState::TALK},
+    {"stretch", PetState::STRETCH},
+    {"look",    PetState::LOOK},
+};
 
-// Sprite centered on screen
-constexpr int SPRITE_X = (SCREEN_W - CHAR_DRAW_W) / 2;  // 96
-constexpr int SPRITE_Y = ((SCREEN_H - CHAR_DRAW_H) + 1) / 2;  // 44
+// ===== State name lookup =====
+static constexpr const char* STATE_NAMES[] = {
+    "IDLE", "HAPPY", "SLEEP", "TALK", "STRETCH", "LOOK"
+};
 
 // Offscreen canvas for double-buffered rendering
 static M5Canvas canvas(&M5Cardputer.Display);
+
+// ===== Public API =====
 
 void Pet::begin() {
     canvas.setColorDepth(16);
@@ -25,19 +44,13 @@ void Pet::begin() {
 }
 
 void Pet::receiveCommand(const char* cmd) {
-    PetState newState = PetState::IDLE;
-
-    if (strcmp(cmd, "idle") == 0)      newState = PetState::IDLE;
-    else if (strcmp(cmd, "happy") == 0)  newState = PetState::HAPPY;
-    else if (strcmp(cmd, "sleep") == 0)  newState = PetState::SLEEP;
-    else if (strcmp(cmd, "talk") == 0)   newState = PetState::TALK;
-    else if (strcmp(cmd, "stretch") == 0) newState = PetState::STRETCH;
-    else if (strcmp(cmd, "look") == 0)  newState = PetState::LOOK;
-    else return;  // unknown command
-
-    setState(newState);
-
-    Serial.printf("[PET] cmd=%s -> %s\n", cmd, stateName(newState));
+    for (const auto& entry : CMD_MAP) {
+        if (strcmp(cmd, entry.name) == 0) {
+            setState(entry.state);
+            Serial.printf("[PET] cmd=%s -> %s\n", cmd, stateName(entry.state));
+            return;
+        }
+    }
 }
 
 void Pet::nextState() {
@@ -48,69 +61,35 @@ void Pet::nextState() {
 void Pet::setState(PetState newState) {
     state = newState;
     frameIndex = 0;
-    lastFrameTime = millis();  // draw frame 0 first
-
-    switch (state) {
-        case PetState::IDLE:    frameInterval = 500; break;
-        case PetState::HAPPY:   frameInterval = 200; break;
-        case PetState::SLEEP:   frameInterval = 1000; break;
-        case PetState::TALK:    frameInterval = 250; break;
-        case PetState::STRETCH: frameInterval = 400; break;
-        case PetState::LOOK:    frameInterval = 300; break;
-        default: break;
-    }
+    lastFrameTime = millis();
 }
 
-const char* Pet::stateName(PetState s) const {
-    switch (s) {
-        case PetState::IDLE:     return "IDLE";
-        case PetState::HAPPY:    return "HAPPY";
-        case PetState::SLEEP:    return "SLEEP";
-        case PetState::TALK:     return "TALK";
-        case PetState::STRETCH:  return "STRETCH";
-        case PetState::LOOK:     return "LOOK";
-        default:                 return "???";
-    }
+const char* Pet::stateName(PetState s) {
+    int idx = static_cast<int>(s);
+    if (idx >= 0 && idx < static_cast<int>(PetState::STATE_COUNT))
+        return STATE_NAMES[idx];
+    return "???";
 }
+
+// ===== Update / Render =====
 
 void Pet::update() {
-    // Advance animation frame
+    const StateConfig& cfg = STATE_CONFIGS[static_cast<int>(state)];
+
     unsigned long now = millis();
-    if (now - lastFrameTime >= frameInterval) {
+    if (now - lastFrameTime >= static_cast<unsigned long>(cfg.frameInterval)) {
         lastFrameTime = now;
         frameIndex++;
-
-        // Wrap frame index based on state
-        switch (state) {
-            case PetState::IDLE:
-            case PetState::LOOK:
-                frameIndex %= IDLE_FRAME_COUNT;
-                break;
-            case PetState::HAPPY:
-            case PetState::STRETCH:
-                frameIndex %= HAPPY_FRAME_COUNT;
-                break;
-            case PetState::SLEEP:
-                frameIndex %= SLEEP_FRAME_COUNT;
-                break;
-            case PetState::TALK:
-                frameIndex %= TALK_FRAME_COUNT;
-                break;
-            default:
-                break;
-        }
+        frameIndex %= cfg.frameCount;
     }
 
-    // Draw weather layer (sky + particles + ground)
-    weatherDraw(canvas);
+    weather.draw(canvas);
 
-    // State name at top-left
     canvas.setTextColor(TFT_WHITE);
     canvas.setTextSize(2);
     canvas.setCursor(4, 2);
     canvas.print(stateName(state));
 
-    // Current time at top center
     const char* t = udpGetCurrentTime();
     if (t[0] != '\0') {
         canvas.setTextColor(rgb565(180, 180, 200));
@@ -120,7 +99,6 @@ void Pet::update() {
         canvas.print(t);
     }
 
-    // WiFi status at top-right
     if (udpIsWiFiConnected()) {
         const char* ip = udpGetLocalIP();
         canvas.setTextColor(rgb565(0, 255, 0));
@@ -135,17 +113,17 @@ void Pet::update() {
         canvas.print("No WiFi");
     }
 
-    // Character centered
     drawCharacter();
-
     canvas.pushSprite(0, 0);
 }
+
+// ===== Drawing Helpers =====
 
 void Pet::drawSprite16(int x, int y, const uint16_t* data) {
     for (int py = 0; py < CHAR_H; py++) {
         for (int px = 0; px < CHAR_W; px++) {
             uint16_t color = data[py * CHAR_W + px];
-            if (color != _) {  // skip transparent (magenta) pixels
+            if (color != _) {
                 canvas.fillRect(x + px * CHAR_SCALE, y + py * CHAR_SCALE,
                                CHAR_SCALE, CHAR_SCALE, color);
             }
@@ -178,7 +156,6 @@ void Pet::drawCharacter() {
     int xOffset = 0;
     int yOffset = 0;
 
-    // Displacement effects
     if (state == PetState::HAPPY && frameIndex % 2 == 0) {
         yOffset = -6;
     }
@@ -194,7 +171,7 @@ void Pet::drawCharacter() {
 }
 
 void Pet::drawAccessory(int x, int y) {
-    AccessoryType acc = weatherGetAccessory();
+    AccessoryType acc = weather.getAccessory();
     if (acc == AccessoryType::NONE) return;
 
     switch (acc) {

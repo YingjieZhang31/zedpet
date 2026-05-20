@@ -1,69 +1,41 @@
 #include "weather.h"
+#include "config.h"
 #include "sprites.h"
 #include <M5Cardputer.h>
 #include <time.h>
-
-// ===== Screen Layout =====
-constexpr int SCREEN_W = 240;
-constexpr int SCREEN_H = 135;
-constexpr int GROUND_Y = SCREEN_H - 28;
-
-// ===== RGB565 Helper =====
-static uint16_t _rgb565(uint8_t r, uint8_t g, uint8_t b) {
-    return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
-}
-#define C(r,g,b) _rgb565(r,g,b)
 
 static const char* WEATHER_NAMES[] = {
     "Clear", "Cloudy", "Overcast", "Fog",
     "Drizzle", "Rain", "Snow", "Thunder"
 };
 
-// ===== State =====
-static WeatherType currentWeather = WeatherType::CLEAR;
-static bool particlesInit = false;
+// ===== Public API =====
 
-// ===== Blend Utility =====
-static uint16_t blendRGB565(uint16_t a, uint16_t b, uint8_t t) {
-    uint8_t r1 = (a >> 11) & 0x1F, g1 = (a >> 5) & 0x3F, b1 = a & 0x1F;
-    uint8_t r2 = (b >> 11) & 0x1F, g2 = (b >> 5) & 0x3F, b2 = b & 0x1F;
-    uint8_t r = r1 + ((int)(r2 - r1) * t / 255);
-    uint8_t g = g1 + ((int)(g2 - g1) * t / 255);
-    uint8_t bl = b1 + ((int)(b2 - b1) * t / 255);
-    return (r << 11) | (g << 5) | bl;
-}
-
-// ===== Forward Declarations =====
-static void initStars();
-static void initParticles();
-
-// ===== API =====
-
-void weatherBegin() {
-    currentWeather = WeatherType::CLEAR;
+void Weather::begin() {
+    current = WeatherType::CLEAR;
     particlesInit = false;
     initStars();
 }
 
-void weatherNext() {
-    int n = (static_cast<int>(currentWeather) + 1) % static_cast<int>(WeatherType::WEATHER_COUNT);
-    currentWeather = static_cast<WeatherType>(n);
+void Weather::next() {
+    int n = (static_cast<int>(current) + 1) % static_cast<int>(WeatherType::WEATHER_COUNT);
+    current = static_cast<WeatherType>(n);
     particlesInit = false;
     Serial.printf("[WEATHER] -> %s\n", WEATHER_NAMES[n]);
 }
 
-const char* weatherTypeName() {
-    return WEATHER_NAMES[static_cast<int>(currentWeather)];
+const char* Weather::typeName() const {
+    return WEATHER_NAMES[static_cast<int>(current)];
 }
 
-int weatherCurrentHour() {
+int Weather::currentHour() {
     struct tm ti;
     if (getLocalTime(&ti, 0)) return ti.tm_hour;
     return 12;
 }
 
-AccessoryType weatherGetAccessory() {
-    switch (currentWeather) {
+AccessoryType Weather::getAccessory() const {
+    switch (current) {
         case WeatherType::CLEAR:
         case WeatherType::PARTLY_CLOUDY: return AccessoryType::SUNGLASSES;
         case WeatherType::RAIN:
@@ -77,12 +49,8 @@ AccessoryType weatherGetAccessory() {
 }
 
 // ===== Stars =====
-constexpr int MAX_STARS = 12;
-struct Star { int x, y; bool visible; };
-static Star stars[MAX_STARS];
-static unsigned long lastStarTwinkle = 0;
 
-static void initStars() {
+void Weather::initStars() {
     for (int i = 0; i < MAX_STARS; i++) {
         stars[i].x = random(10, SCREEN_W - 10);
         stars[i].y = random(5, GROUND_Y - 60);
@@ -91,16 +59,8 @@ static void initStars() {
 }
 
 // ===== Particles =====
-constexpr int MAX_RAIN = 15;
-constexpr int MAX_SNOW = 15;
-struct RainDrop { int16_t x, y; };
-struct Snowflake { int16_t x, y; int8_t drift; };
-static RainDrop rainDrops[MAX_RAIN];
-static Snowflake snowflakes[MAX_SNOW];
-static unsigned long lastThunderFlash = 0;
-static bool thunderFlashing = false;
 
-static void initParticles() {
+void Weather::initParticles() {
     for (int i = 0; i < MAX_RAIN; i++) {
         rainDrops[i].x = random(SCREEN_W);
         rainDrops[i].y = random(GROUND_Y);
@@ -113,9 +73,20 @@ static void initParticles() {
     particlesInit = true;
 }
 
+// ===== Blend Utility =====
+
+uint16_t Weather::blendRGB565(uint16_t a, uint16_t b, uint8_t t) {
+    uint8_t r1 = (a >> 11) & 0x1F, g1 = (a >> 5) & 0x3F, b1 = a & 0x1F;
+    uint8_t r2 = (b >> 11) & 0x1F, g2 = (b >> 5) & 0x3F, b2 = b & 0x1F;
+    uint8_t r = r1 + ((int)(r2 - r1) * t / 255);
+    uint8_t g = g1 + ((int)(g2 - g1) * t / 255);
+    uint8_t bl = b1 + ((int)(b2 - b1) * t / 255);
+    return (r << 11) | (g << 5) | bl;
+}
+
 // ===== Sky Elements =====
 
-static void drawSun(M5Canvas& canvas) {
+void Weather::drawSun(M5Canvas& canvas) {
     canvas.fillCircle(200, 18, 10, C(255, 220, 60));
     for (int i = 0; i < 8; i++) {
         float angle = i * 0.785f;
@@ -127,14 +98,14 @@ static void drawSun(M5Canvas& canvas) {
     }
 }
 
-static void drawClouds(M5Canvas& canvas, uint16_t color) {
+void Weather::drawClouds(M5Canvas& canvas, uint16_t color) {
     canvas.fillRoundRect(40, 12, 24, 8, 4, color);
     canvas.fillRoundRect(48, 8, 16, 8, 4, color);
     canvas.fillRoundRect(130, 18, 20, 6, 3, color);
     canvas.fillRoundRect(136, 14, 14, 6, 3, color);
 }
 
-static void drawStars(M5Canvas& canvas) {
+void Weather::drawStars(M5Canvas& canvas) {
     if (millis() - lastStarTwinkle > 800) {
         lastStarTwinkle = millis();
         int idx = random(MAX_STARS);
@@ -153,12 +124,12 @@ static void drawStars(M5Canvas& canvas) {
     }
 }
 
-static void drawMoon(M5Canvas& canvas, uint16_t skyColor) {
+void Weather::drawMoon(M5Canvas& canvas, uint16_t skyColor) {
     canvas.fillCircle(30, 20, 10, C(220, 220, 200));
     canvas.fillCircle(34, 17, 9, skyColor);
 }
 
-static void drawDarkClouds(M5Canvas& canvas) {
+void Weather::drawDarkClouds(M5Canvas& canvas) {
     uint16_t c = C(150, 150, 160);
     canvas.fillRoundRect(30, 10, 30, 10, 5, c);
     canvas.fillRoundRect(40, 5, 20, 10, 5, c);
@@ -169,7 +140,7 @@ static void drawDarkClouds(M5Canvas& canvas) {
 
 // ===== Particle Drawing =====
 
-static void drawRainParticles(M5Canvas& canvas, int count, int speed, int len) {
+void Weather::drawRainParticles(M5Canvas& canvas, int count, int speed, int len) {
     uint16_t rainColor = C(140, 160, 200);
     for (int i = 0; i < count; i++) {
         rainDrops[i].y += speed;
@@ -185,7 +156,7 @@ static void drawRainParticles(M5Canvas& canvas, int count, int speed, int len) {
     }
 }
 
-static void drawSnowParticles(M5Canvas& canvas) {
+void Weather::drawSnowParticles(M5Canvas& canvas) {
     uint16_t snowColor = C(220, 220, 230);
     for (int i = 0; i < MAX_SNOW; i++) {
         snowflakes[i].y += 1;
@@ -207,7 +178,7 @@ static void drawSnowParticles(M5Canvas& canvas) {
     }
 }
 
-static void drawFogParticles(M5Canvas& canvas) {
+void Weather::drawFogParticles(M5Canvas& canvas) {
     uint16_t fogColor = C(160, 160, 165);
     int offset = (millis() / 200) % 3;
     for (int y = 20 + offset; y < GROUND_Y; y += 4) {
@@ -217,10 +188,10 @@ static void drawFogParticles(M5Canvas& canvas) {
     }
 }
 
-static void drawParticles(M5Canvas& canvas) {
+void Weather::drawParticles(M5Canvas& canvas) {
     if (!particlesInit) initParticles();
 
-    switch (currentWeather) {
+    switch (current) {
         case WeatherType::RAIN:
             drawRainParticles(canvas, MAX_RAIN, 5, 5);
             break;
@@ -255,10 +226,31 @@ static void drawParticles(M5Canvas& canvas) {
     }
 }
 
+void Weather::drawSkyElements(M5Canvas& canvas, int hour, bool hideSun, uint16_t skyColor) {
+    if (hour >= 6 && hour < 17) {
+        if (!hideSun) {
+            drawSun(canvas);
+            drawClouds(canvas, C(220, 230, 240));
+        } else {
+            drawDarkClouds(canvas);
+        }
+    } else if (hour >= 17 && hour < 19) {
+        if (!hideSun) {
+            canvas.fillCircle(200, GROUND_Y - 10, 12, C(255, 220, 60));
+            canvas.fillCircle(200, GROUND_Y - 10, 10, C(255, 160, 40));
+        }
+    } else {
+        if (!hideSun) {
+            drawStars(canvas);
+            drawMoon(canvas, skyColor);
+        }
+    }
+}
+
 // ===== Main Weather Draw =====
 
-void weatherDraw(M5Canvas& canvas) {
-    int h = weatherCurrentHour();
+void Weather::draw(M5Canvas& canvas) {
+    int h = currentHour();
     uint16_t skyColor, groundColor, groundTopColor;
 
     if (h >= 6 && h < 17) {
@@ -276,7 +268,7 @@ void weatherDraw(M5Canvas& canvas) {
     }
 
     bool hideSun = false;
-    switch (currentWeather) {
+    switch (current) {
         case WeatherType::OVERCAST:
             skyColor = blendRGB565(skyColor, C(130, 140, 160), 80);
             hideSun = true;
@@ -306,24 +298,7 @@ void weatherDraw(M5Canvas& canvas) {
     canvas.fillScreen(skyColor);
 
     // 2. Sky elements
-    if (h >= 6 && h < 17) {
-        if (!hideSun) {
-            drawSun(canvas);
-            drawClouds(canvas, C(220, 230, 240));
-        } else {
-            drawDarkClouds(canvas);
-        }
-    } else if (h >= 17 && h < 19) {
-        if (!hideSun) {
-            canvas.fillCircle(200, GROUND_Y - 10, 12, C(255, 220, 60));
-            canvas.fillCircle(200, GROUND_Y - 10, 10, C(255, 160, 40));
-        }
-    } else {
-        if (!hideSun) {
-            drawStars(canvas);
-            drawMoon(canvas, skyColor);
-        }
-    }
+    drawSkyElements(canvas, h, hideSun, skyColor);
 
     // 3. Particles
     drawParticles(canvas);
@@ -337,3 +312,6 @@ void weatherDraw(M5Canvas& canvas) {
         canvas.drawPixel(gx + 15, GROUND_Y + 8, groundTopColor);
     }
 }
+
+// ===== Global instance =====
+Weather weather;

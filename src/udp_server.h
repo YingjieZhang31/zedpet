@@ -2,13 +2,32 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-// WIFI_SSID / WIFI_PASS come from PlatformIO build_flags via env vars.
-// Set before building:  export WIFI_SSID="..." WIFI_PASS="..."
 constexpr int UDP_PORT = 19820;
 
-void udpServerBegin();
-const char* udpCheckCommand();  // returns cmd string or nullptr
-void udpSendAck(const char* cmd);
-bool udpIsWiFiConnected();
-const char* udpGetLocalIP();
-const char* udpGetCurrentTime();  // NTP-synced current time, HH:MM format
+class UdpServer {
+public:
+    void begin();
+    const char* checkCommand();
+    void sendAck(const char* cmd);
+    bool isWiFiConnected() const;
+    const char* getLocalIP() const;
+    const char* getCurrentTime() const;
+
+private:
+    WiFiUDP udp;
+    char packetBuffer[256] = {};
+    bool timeSynced = false;
+
+    void syncTime();
+    const char* parseCommand();
+};
+
+extern UdpServer udpServer;
+
+// Backward-compatible wrappers
+inline void udpServerBegin()           { udpServer.begin(); }
+inline const char* udpCheckCommand()   { return udpServer.checkCommand(); }
+inline void udpSendAck(const char* c)  { udpServer.sendAck(c); }
+inline bool udpIsWiFiConnected()       { return udpServer.isWiFiConnected(); }
+inline const char* udpGetLocalIP()     { return udpServer.getLocalIP(); }
+inline const char* udpGetCurrentTime() { return udpServer.getCurrentTime(); }

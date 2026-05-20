@@ -8,25 +8,29 @@ enum class PetState : uint8_t {
     TALK,
     STRETCH,
     LOOK,
-    STATE_COUNT  // must be last — used for iteration bounds
+    STATE_COUNT
+};
+
+struct StateConfig {
+    int frameInterval;
+    int frameCount;
 };
 
 class Pet {
 public:
     void begin();
-    void receiveCommand(const char* cmd);  // map string to PetState
-    void nextState();  // cycle to next state (IDLE→HAPPY→...→IDLE)
-    void update();  // call every frame from loop()
+    void receiveCommand(const char* cmd);
+    void nextState();
+    void update();
 
 private:
     PetState state = PetState::IDLE;
     int frameIndex = 0;
     unsigned long lastFrameTime = 0;
-    int frameInterval = 500;  // ms per frame
 
     void setState(PetState newState);
     void drawSprite16(int x, int y, const uint16_t* data);
     void drawCharacter();
     void drawAccessory(int x, int y);
-    const char* stateName(PetState s) const;
+    static const char* stateName(PetState s);
 };
