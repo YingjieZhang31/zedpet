@@ -1,17 +1,6 @@
 #pragma once
 #include <cstdint>
-
-// Sprite dimensions
-constexpr int CHAR_W = 16;
-constexpr int CHAR_H = 16;
-constexpr int CHAR_SCALE = 3;
-constexpr int CHAR_DRAW_W = CHAR_W * CHAR_SCALE;  // 48
-constexpr int CHAR_DRAW_H = CHAR_H * CHAR_SCALE;  // 48
-
-// RGB565 color helper
-constexpr uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b) {
-    return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
-}
+#include "config.h"
 
 // Color palette — OpenClaw lobster
 constexpr uint16_t _ = rgb565(255, 0, 255);       // Magenta = transparent
