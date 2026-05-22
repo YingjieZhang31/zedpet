@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -72,6 +72,17 @@ def build_app(cwd: Path) -> FastAPI:
                     })
         except WebSocketDisconnect:
             return
+
+    @app.post("/ask")
+    async def ask(payload: dict):
+        """Synchronous text-in / text-out endpoint reserved for ESP32 client.
+
+        MVP returns 501; the ESP32 integration will implement the body when needed.
+        """
+        raise HTTPException(
+            status_code=501,
+            detail="Not implemented — reserved for ESP32 client integration",
+        )
 
     return app
 
