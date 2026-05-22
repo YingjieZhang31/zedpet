@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import sys
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -30,6 +31,47 @@ def build_app(cwd: Path) -> FastAPI:
     @app.get("/")
     def index():
         return FileResponse(static_dir / "index.html")
+
+    @app.websocket("/ws")
+    async def ws_endpoint(ws: WebSocket):
+        await ws.accept()
+        runner: ClaudeRunner = app.state.runner
+        await ws.send_json({
+            "type": "ready",
+            "session_id": runner.current_session_id(),
+            "cwd": str(runner.cwd),
+        })
+        try:
+            while True:
+                raw = await ws.receive_text()
+                try:
+                    msg = json.loads(raw)
+                except json.JSONDecodeError:
+                    await ws.send_json({"type": "error", "message": "invalid JSON"})
+                    continue
+
+                mtype = msg.get("type")
+                if mtype == "user_message":
+                    text = msg.get("text", "")
+                    if not isinstance(text, str) or not text.strip():
+                        await ws.send_json({"type": "error", "message": "empty prompt"})
+                        continue
+                    async for ev in runner.query(text):
+                        await ws.send_json(ev)
+                elif mtype == "new_session":
+                    runner.reset_session()
+                    await ws.send_json({
+                        "type": "ready",
+                        "session_id": None,
+                        "cwd": str(runner.cwd),
+                    })
+                else:
+                    await ws.send_json({
+                        "type": "error",
+                        "message": f"unknown message type: {mtype!r}",
+                    })
+        except WebSocketDisconnect:
+            return
 
     return app
 
