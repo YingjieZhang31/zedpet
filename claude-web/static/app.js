@@ -152,8 +152,89 @@ function handleEvent(ev) {
   }
 }
 
-// Placeholders for Task 10.
-function appendToolUse(ev) { console.log("tool_use", ev); }
-function attachToolResult(ev) { console.log("tool_result", ev); }
+const toolNodes = new Map();  // tool_use_id -> { line, card, resultLineEl, resultDetailEl }
+
+function summarizeInput(name, input) {
+  if (!input || typeof input !== "object") return "";
+  if (name === "Bash") return input.command || "";
+  if (name === "Read" || name === "Edit" || name === "Write") return input.file_path || input.path || "";
+  if (name === "Grep") return input.pattern || "";
+  if (name === "Glob") return input.pattern || "";
+  // Generic fallback: first 80 chars of JSON
+  const s = JSON.stringify(input);
+  return s.length > 80 ? s.slice(0, 80) + "…" : s;
+}
+
+function summarizeResult(content, isError) {
+  if (!content) return isError ? "error" : "ok";
+  const oneLine = content.replace(/\s+/g, " ").trim();
+  return oneLine.length > 60 ? oneLine.slice(0, 60) + "…" : oneLine;
+}
+
+function appendToolUse(ev) {
+  const wrap = document.createElement("div");
+  wrap.className = "tool-event";
+
+  // Compact one-liner
+  const line = document.createElement("div");
+  line.className = "tool-line items-center text-xs text-gray-500 gap-2";
+  const resultLineEl = document.createElement("span");
+  resultLineEl.className = "text-gray-400";
+  resultLineEl.textContent = "…";
+  line.innerHTML = `<span>🔧</span><span class="font-medium text-gray-700"></span><span class="truncate"></span><span>·</span>`;
+  line.children[1].textContent = ev.name;
+  line.children[2].textContent = summarizeInput(ev.name, ev.input);
+  line.appendChild(resultLineEl);
+
+  // Expanded card
+  const card = document.createElement("details");
+  card.className = "tool-card border rounded bg-gray-50";
+  const summary = document.createElement("summary");
+  summary.className = "cursor-pointer px-2 py-1 text-xs text-gray-700 flex items-center gap-2";
+  summary.innerHTML = `<span>🔧</span><span class="font-medium"></span><span class="text-gray-500 truncate"></span>`;
+  summary.children[1].textContent = ev.name;
+  summary.children[2].textContent = summarizeInput(ev.name, ev.input);
+  card.appendChild(summary);
+
+  const body = document.createElement("div");
+  body.className = "px-2 pb-2 text-xs space-y-2";
+  const inputPre = document.createElement("pre");
+  inputPre.className = "bg-white border rounded p-2 overflow-x-auto";
+  inputPre.textContent = JSON.stringify(ev.input, null, 2);
+  body.appendChild(labelled("input", inputPre));
+
+  const resultDetailEl = document.createElement("pre");
+  resultDetailEl.className = "bg-white border rounded p-2 overflow-x-auto text-gray-400";
+  resultDetailEl.textContent = "(waiting…)";
+  body.appendChild(labelled("output", resultDetailEl));
+  card.appendChild(body);
+
+  wrap.appendChild(line);
+  wrap.appendChild(card);
+  messagesEl.appendChild(wrap);
+  scrollToBottom();
+
+  toolNodes.set(ev.tool_use_id, { line, card, resultLineEl, resultDetailEl });
+}
+
+function attachToolResult(ev) {
+  const node = toolNodes.get(ev.tool_use_id);
+  if (!node) return;
+  node.resultLineEl.textContent = summarizeResult(ev.content, ev.is_error);
+  node.resultLineEl.className = ev.is_error ? "text-red-600" : "text-gray-500";
+  node.resultDetailEl.textContent = ev.content || "";
+  node.resultDetailEl.className = "bg-white border rounded p-2 overflow-x-auto " +
+    (ev.is_error ? "text-red-700" : "text-gray-800");
+}
+
+function labelled(label, child) {
+  const wrap = document.createElement("div");
+  const lbl = document.createElement("div");
+  lbl.className = "text-gray-500 mb-1";
+  lbl.textContent = label;
+  wrap.appendChild(lbl);
+  wrap.appendChild(child);
+  return wrap;
+}
 
 connect();

@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>claude-web</title>
   <script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* Compact mode: single-line summary, details hidden */
+  body[data-tool-mode="compact"] .tool-card { display: none; }
+  body[data-tool-mode="compact"] .tool-line { display: flex; }
+  /* Card mode: collapsible card with details, hide the one-liner */
+  body[data-tool-mode="card"] .tool-card { display: block; }
+  body[data-tool-mode="card"] .tool-line { display: none; }
+</style>
 </head>
 <body class="bg-gray-50 text-gray-900 h-screen flex flex-col">
   <header class="flex items-center gap-3 px-4 py-2 border-b bg-white">
