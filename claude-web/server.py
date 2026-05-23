@@ -9,7 +9,7 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from claude_runner import ClaudeRunner
@@ -25,6 +25,12 @@ def build_app(cwd: Path) -> FastAPI:
         session_store=SessionStore(cwd / ".claude-web" / "session.json"),
     )
     app.state.runner = runner
+
+    ask_runner = ClaudeRunner(
+        cwd=cwd,
+        session_store=SessionStore(cwd / ".claude-web" / "ask-session.json"),
+    )
+    app.state.ask_runner = ask_runner
 
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
@@ -75,14 +81,18 @@ def build_app(cwd: Path) -> FastAPI:
 
     @app.post("/ask")
     async def ask(payload: dict):
-        """Synchronous text-in / text-out endpoint reserved for ESP32 client.
+        text = (payload or {}).get("text", "")
+        if not isinstance(text, str) or not text.strip():
+            raise HTTPException(status_code=400, detail="missing 'text'")
 
-        MVP returns 501; the ESP32 integration will implement the body when needed.
-        """
-        raise HTTPException(
-            status_code=501,
-            detail="Not implemented — reserved for ESP32 client integration",
-        )
+        async def stream():
+            async for ev in app.state.ask_runner.query(text):
+                if ev["type"] == "assistant_text":
+                    yield ev["text"]
+                elif ev["type"] == "error":
+                    yield f"\n[error: {ev['message']}]\n"
+
+        return StreamingResponse(stream(), media_type="text/plain; charset=utf-8")
 
     return app
 
