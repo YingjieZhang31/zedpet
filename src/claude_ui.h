@@ -28,6 +28,7 @@ private:
     bool cursorOn_ = true;
 
     ClaudeClient client_;
+    std::vector<char> prevKeys_;
 
     void handleKeys();
     void sendCurrentInput();

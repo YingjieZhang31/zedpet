@@ -94,13 +94,13 @@ The Cardputer uses an independent session — stored at
 
 Run the server (`python server.py --cwd /path/to/project --port 8000`), then:
 
-1. Power the Cardputer; press `c` → screen clears to Claude mode (input row `>` at bottom, WiFi dot bottom-right)
+1. Power the Cardputer; press `Tab` → screen clears to Claude mode (input row `>` at bottom, WiFi dot bottom-right)
 2. Type "say hi in 5 words" + Enter → spinner appears top-right → reply streams onto the screen
 3. Ask "what did I just ask?" → reply references the prior turn (independent ask-session resume works)
 4. Ask "tell me a 200 word story" → text scrolls automatically as it overflows
 5. Mid-stream, press `Ctrl+C` → stream stops, what's already shown stays
-6. Press `c` → returns to pet/weather; press `q` and `w` → original modes still work
-7. With server stopped, press `c` and send a prompt → `[error] HTTP ...` red footer; press `Ctrl+C` to clear
+6. Press `Tab` → returns to pet/weather; press `q` and `w` → original modes still work
+7. With server stopped, press `Tab` and send a prompt → `[error] HTTP ...` red footer; press `Ctrl+C` to clear
 
 ### Host-side parsing tests
 

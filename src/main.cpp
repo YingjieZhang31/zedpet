@@ -23,20 +23,18 @@ void setup() {
 
 static bool qWasDown = false;
 static bool wWasDown = false;
-static bool cWasDown = false;
+static bool tabWasDown = false;
 
 void loop() {
     M5Cardputer.update();
     auto ks = M5Cardputer.Keyboard.keysState();
 
-    // Mode toggle: 'c' (without ctrl) enters/exits Claude mode.
-    bool cDown = !ks.ctrl &&
-                 std::find(ks.word.begin(), ks.word.end(), 'c') != ks.word.end();
-    if (cDown && !cWasDown) {
+    // Mode toggle: Tab key enters/exits Claude mode.
+    if (ks.tab && !tabWasDown) {
         if (claudeUi.isActive()) claudeUi.exit();
         else                     claudeUi.enter();
     }
-    cWasDown = cDown;
+    tabWasDown = ks.tab;
 
     if (claudeUi.isActive()) {
         claudeUi.update();

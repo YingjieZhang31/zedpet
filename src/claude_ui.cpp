@@ -99,8 +99,15 @@ void ClaudeUi::handleKeys() {
 
     // Character input: only when Idle or Typing
     if (state_ != State::Idle && state_ != State::Typing) return;
+    // Edge detection: only process newly-pressed keys (not held down)
+    std::vector<char> newKeys;
     for (auto k : ks.word) {
-        if (k == 'c' && ks.ctrl) continue;     // already handled above
+        if (k == 'c' && ks.ctrl) continue;
+        bool wasDown = std::find(prevKeys_.begin(), prevKeys_.end(), k) != prevKeys_.end();
+        if (!wasDown) newKeys.push_back(k);
+    }
+    std::sort(newKeys.begin(), newKeys.end());
+    for (auto k : newKeys) {
         if (inputBuf_.length() >= CLAUDE_MAX_INPUT) break;
         if (k >= 32 && k < 127) {
             inputBuf_ += (char)k;
@@ -108,6 +115,7 @@ void ClaudeUi::handleKeys() {
             inputDirty_ = true;
         }
     }
+    prevKeys_ = ks.word;
 }
 
 void ClaudeUi::sendCurrentInput() {
