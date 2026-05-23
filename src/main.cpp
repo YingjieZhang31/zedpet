@@ -1,10 +1,12 @@
 #include <algorithm>
 #include <M5Cardputer.h>
+#include "claude_ui.h"
 #include "pet.h"
 #include "udp_server.h"
 #include "weather.h"
 
 Pet pet;
+ClaudeUi claudeUi;
 
 void setup() {
     auto cfg = M5.config();
@@ -13,18 +15,34 @@ void setup() {
     M5Cardputer.Display.fillScreen(TFT_BLACK);
 
     pet.begin();
+    claudeUi.begin();
 
-    udpServerBegin();   // backward-compatible inline wrapper
-    weather.begin();    // Weather class method
+    udpServerBegin();
+    weather.begin();
 }
 
 static bool qWasDown = false;
 static bool wWasDown = false;
+static bool cWasDown = false;
 
 void loop() {
     M5Cardputer.update();
-
     auto ks = M5Cardputer.Keyboard.keysState();
+
+    // Mode toggle: 'c' (without ctrl) enters/exits Claude mode.
+    bool cDown = !ks.ctrl &&
+                 std::find(ks.word.begin(), ks.word.end(), 'c') != ks.word.end();
+    if (cDown && !cWasDown) {
+        if (claudeUi.isActive()) claudeUi.exit();
+        else                     claudeUi.enter();
+    }
+    cWasDown = cDown;
+
+    if (claudeUi.isActive()) {
+        claudeUi.update();
+        delay(16);
+        return;
+    }
 
     bool qDown = std::find(ks.word.begin(), ks.word.end(), 'q') != ks.word.end();
     if (qDown && !qWasDown) pet.nextState();
@@ -41,5 +59,6 @@ void loop() {
     }
 
     pet.update();
+    weather.update();
     delay(16);
 }
