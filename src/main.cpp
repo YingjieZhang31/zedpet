@@ -59,6 +59,5 @@ void loop() {
     }
 
     pet.update();
-    weather.update();
     delay(16);
 }

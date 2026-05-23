@@ -34,9 +34,10 @@ constexpr size_t CLAUDE_MAX_INPUT = 200;
 constexpr size_t CLAUDE_REPLY_CAP = 4096;
 constexpr size_t CLAUDE_REPLY_TRIM_TO = 3000;  // when over cap, keep last N bytes
 
-// Colors
-constexpr uint16_t CLAUDE_BG          = TFT_BLACK;
-constexpr uint16_t CLAUDE_FG          = TFT_WHITE;
+// Colors (use literal rgb565 values to avoid pulling in M5GFX here — config.h
+// is included by translation units that don't otherwise need TFT_* macros)
+constexpr uint16_t CLAUDE_BG          = C(0, 0, 0);
+constexpr uint16_t CLAUDE_FG          = C(255, 255, 255);
 constexpr uint16_t CLAUDE_INPUT_BG    = C(32, 32, 40);
 constexpr uint16_t CLAUDE_PROMPT_FG   = C(120, 180, 255);
 constexpr uint16_t CLAUDE_ERROR_FG    = C(255, 80, 80);
