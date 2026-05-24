@@ -44,3 +44,11 @@ constexpr uint16_t CLAUDE_ERROR_FG    = C(255, 80, 80);
 constexpr uint16_t CLAUDE_STATUS_FG   = C(160, 160, 160);
 constexpr uint16_t CLAUDE_WIFI_OK     = C(80, 200, 80);
 constexpr uint16_t CLAUDE_WIFI_BAD    = C(200, 80, 80);
+
+// IMU tilt physics parameters (constexpr float -- tune & recompile)
+constexpr float IMU_SENSITIVITY   = 3.0f;    // tilt-to-acceleration gain
+constexpr float IMU_DAMPING       = 2.5f;    // per-second friction, higher = stops faster
+constexpr float IMU_BOUNCE        = 0.5f;    // edge bounce multiplier (0=dead stop, 1=elastic)
+constexpr float IMU_DEAD_ZONE     = 0.03f;   // ignore tilt below this to avoid sensor drift
+constexpr float IMU_VELOCITY_CAP  = 120.0f;  // max velocity px/s, prevents teleporting
+constexpr float IMU_MAX_DT        = 0.1f;    // cap frame delta to avoid huge jumps after lag
