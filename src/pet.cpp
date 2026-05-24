@@ -4,7 +4,9 @@
 #include "udp_server.h"
 #include "weather.h"
 #include <M5Cardputer.h>
+#include <M5Unified.h>
 #include <cstring>
+#include <cmath>
 
 // ===== State configuration (replaces scattered switch statements) =====
 static constexpr StateConfig STATE_CONFIGS[] = {
@@ -62,6 +64,14 @@ void Pet::setState(PetState newState) {
     state = newState;
     frameIndex = 0;
     lastFrameTime = millis();
+    // Reset IMU physics when leaving IDLE
+    if (newState != PetState::IDLE) {
+        _imu.posX = 0;
+        _imu.posY = 0;
+        _imu.velX = 0;
+        _imu.velY = 0;
+        _imu.lastPhysicsMs = 0;
+    }
 }
 
 const char* Pet::stateName(PetState s) {
@@ -84,6 +94,10 @@ void Pet::update() {
     }
 
     weather.draw(canvas);
+
+    if (state == PetState::IDLE) {
+        updatePhysics();
+    }
 
     canvas.setTextColor(TFT_WHITE);
     canvas.setTextSize(2);
@@ -153,17 +167,17 @@ void Pet::drawCharacter() {
 
     if (!frame) return;
 
-    int xOffset = 0;
-    int yOffset = 0;
+    int xOffset = static_cast<int>(_imu.posX);
+    int yOffset = static_cast<int>(_imu.posY);
 
     if (state == PetState::HAPPY && frameIndex % 2 == 0) {
-        yOffset = -6;
+        yOffset += -6;
     }
     if (state == PetState::LOOK) {
-        xOffset = (frameIndex % 2 == 0) ? -3 : 3;
+        xOffset += (frameIndex % 2 == 0) ? -3 : 3;
     }
     if (state == PetState::STRETCH && frameIndex % 2 == 0) {
-        yOffset = -3;
+        yOffset += -3;
     }
 
     drawSprite16(SPRITE_X + xOffset, SPRITE_Y + yOffset, frame);
@@ -201,5 +215,84 @@ void Pet::drawAccessory(int x, int y) {
             break;
         }
         default: break;
+    }
+}
+
+void Pet::updatePhysics() {
+    // Calibrate on first call: capture current IMU reading as zero
+    if (!_imu.calibrated) {
+        _imu.calibRoll = M5.Imu.getRoll();
+        _imu.calibPitch = M5.Imu.getPitch();
+        _imu.calibrated = true;
+        return;
+    }
+
+    // Calculate time delta using physics-specific timestamp
+    unsigned long now = millis();
+    float dt;
+    if (_imu.lastPhysicsMs == 0) {
+        dt = IMU_MAX_DT;  // first tick after reset
+    } else {
+        dt = (now - _imu.lastPhysicsMs) / 1000.0f;
+    }
+    _imu.lastPhysicsMs = now;
+    if (dt <= 0 || dt > IMU_MAX_DT) dt = IMU_MAX_DT;
+
+    // Read tilt relative to calibration
+    float roll = M5.Imu.getRoll() - _imu.calibRoll;
+    float pitch = M5.Imu.getPitch() - _imu.calibPitch;
+
+    // Dead zone: skip acceleration if tilt is negligible
+    float sinRoll = sin(roll);
+    float sinPitch = sin(pitch);
+    if (fabs(sinRoll) < IMU_DEAD_ZONE) sinRoll = 0;
+    if (fabs(sinPitch) < IMU_DEAD_ZONE) sinPitch = 0;
+
+    // Acceleration from tilt
+    float ax = IMU_SENSITIVITY * sinRoll * 9.8f;
+    float ay = IMU_SENSITIVITY * sinPitch * 9.8f;
+
+    // Integrate velocity
+    _imu.velX += ax * dt;
+    _imu.velY += ay * dt;
+
+    // Apply damping
+    float damp = 1.0f - IMU_DAMPING * dt;
+    if (damp < 0) damp = 0;
+    _imu.velX *= damp;
+    _imu.velY *= damp;
+
+    // Cap velocity
+    float speed = sqrtf(_imu.velX * _imu.velX + _imu.velY * _imu.velY);
+    if (speed > IMU_VELOCITY_CAP) {
+        float scale = IMU_VELOCITY_CAP / speed;
+        _imu.velX *= scale;
+        _imu.velY *= scale;
+    }
+
+    // Integrate position
+    _imu.posX += _imu.velX * dt;
+    _imu.posY += _imu.velY * dt;
+
+    // Boundary collision with elastic bounce
+    const int minX = -SPRITE_X;
+    const int maxX = SCREEN_W - SPRITE_X - CHAR_DRAW_W;
+    const int minY = -SPRITE_Y;
+    const int maxY = SCREEN_H - SPRITE_Y - CHAR_DRAW_W;
+
+    if (_imu.posX < minX) {
+        _imu.posX = minX;
+        _imu.velX *= -IMU_BOUNCE;
+    } else if (_imu.posX > maxX) {
+        _imu.posX = maxX;
+        _imu.velX *= -IMU_BOUNCE;
+    }
+
+    if (_imu.posY < minY) {
+        _imu.posY = minY;
+        _imu.velY *= -IMU_BOUNCE;
+    } else if (_imu.posY > maxY) {
+        _imu.posY = maxY;
+        _imu.velY *= -IMU_BOUNCE;
     }
 }
