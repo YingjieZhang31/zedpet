@@ -33,16 +33,28 @@ public:
     void nextState();
     void update();
 
+    // IMU param tuning (keyboard controls)
+    void nextParam();
+    void adjustParam(int delta);
+
 private:
     PetState state = PetState::IDLE;
     int frameIndex = 0;
     unsigned long lastFrameTime = 0;
 
+    ImuState _imu;
+
+    // Runtime-tunable physics params
+    float _sens = 60.0f;
+    float _damp = 2.5f;
+    float _bounce = 0.5f;
+    int _paramSel = 0;  // 0=sens, 1=damp, 2=bounce
+
     void setState(PetState newState);
     void drawSprite16(int x, int y, const uint16_t* data);
     void drawCharacter();
     void drawAccessory(int x, int y);
+    void drawParamBar();
     void updatePhysics();
-    ImuState _imu;
     static const char* stateName(PetState s);
 };

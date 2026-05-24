@@ -7,6 +7,7 @@
 #include <M5Unified.h>
 #include <cstring>
 #include <cmath>
+#include <cstdio>
 
 // ===== State configuration (replaces scattered switch statements) =====
 static constexpr StateConfig STATE_CONFIGS[] = {
@@ -128,6 +129,7 @@ void Pet::update() {
     }
 
     drawCharacter();
+    drawParamBar();
     canvas.pushSprite(0, 0);
 }
 
@@ -254,15 +256,15 @@ void Pet::updatePhysics() {
     if (fabsf(tiltY) < IMU_DEAD_ZONE) tiltY = 0;
 
     // Acceleration from tilt (raw values already encode sin(angle))
-    float ax_acc = IMU_SENSITIVITY * tiltX;
-    float ay_acc = IMU_SENSITIVITY * tiltY;
+    float ax_acc = -_sens * tiltX;
+    float ay_acc = _sens * tiltY;
 
     // Integrate velocity
     _imu.velX += ax_acc * dt;
     _imu.velY += ay_acc * dt;
 
     // Apply damping
-    float damp = 1.0f - IMU_DAMPING * dt;
+    float damp = 1.0f - _damp * dt;
     if (damp < 0) damp = 0;
     _imu.velX *= damp;
     _imu.velY *= damp;
@@ -287,17 +289,65 @@ void Pet::updatePhysics() {
 
     if (_imu.posX < minX) {
         _imu.posX = minX;
-        _imu.velX *= -IMU_BOUNCE;
+        _imu.velX *= -_bounce;
     } else if (_imu.posX > maxX) {
         _imu.posX = maxX;
-        _imu.velX *= -IMU_BOUNCE;
+        _imu.velX *= -_bounce;
     }
 
     if (_imu.posY < minY) {
         _imu.posY = minY;
-        _imu.velY *= -IMU_BOUNCE;
+        _imu.velY *= -_bounce;
     } else if (_imu.posY > maxY) {
         _imu.posY = maxY;
-        _imu.velY *= -IMU_BOUNCE;
+        _imu.velY *= -_bounce;
+    }
+}
+
+// ===== IMU Param Tuning =====
+
+void Pet::nextParam() {
+    _paramSel = (_paramSel + 1) % 3;
+}
+
+void Pet::adjustParam(int delta) {
+    switch (_paramSel) {
+        case 0: _sens  += delta * 5.0f;  if (_sens  < 5.0f)  _sens  = 5.0f;  break;
+        case 1: _damp  += delta * 0.5f;  if (_damp  < 0.0f)  _damp  = 0.0f;  break;
+        case 2: _bounce += delta * 0.1f; if (_bounce < 0.0f) _bounce = 0.0f;
+                 if (_bounce > 1.0f) _bounce = 1.0f; break;
+    }
+}
+
+void Pet::drawParamBar() {
+    const int barY = SCREEN_H - 10;
+    const uint16_t bg   = rgb565(20, 20, 30);
+    const uint16_t fg   = rgb565(140, 140, 160);
+    const uint16_t sel  = rgb565(255, 220, 80);
+    const uint16_t valC = rgb565(200, 200, 220);
+
+    canvas.fillRect(0, barY, SCREEN_W, 10, bg);
+
+    canvas.setTextSize(1);
+    canvas.setCursor(2, barY + 1);
+
+    struct { const char* label; float val; int dec; } const params[] = {
+        {"SENS", _sens,  0},
+        {"DAMP", _damp,  1},
+        {"BNC",  _bounce, 1},
+    };
+
+    for (int i = 0; i < 3; i++) {
+        bool active = (i == _paramSel);
+        canvas.setTextColor(active ? sel : fg);
+
+        char buf[16];
+        if (params[i].dec == 0) {
+            snprintf(buf, sizeof(buf), "%s:%.0f", params[i].label, params[i].val);
+        } else {
+            snprintf(buf, sizeof(buf), "%s:%.1f", params[i].label, params[i].val);
+        }
+        canvas.print(buf);
+        canvas.print("  ");
     }
 }
