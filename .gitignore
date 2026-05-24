@@ -10,6 +10,9 @@ compile_commands.json
 # IDE
 .vscode/
 
+# claude configurations
+.claude/
+
 # Python
 __pycache__/
 
