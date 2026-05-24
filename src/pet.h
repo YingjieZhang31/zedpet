@@ -1,6 +1,15 @@
 #pragma once
 #include <cstdint>
 
+struct ImuState {
+    float posX = 0, posY = 0;        // current offset from center (px)
+    float velX = 0, velY = 0;        // velocity (px/s)
+    float calibRoll = 0;             // zero-calibration baseline
+    float calibPitch = 0;
+    unsigned long lastPhysicsMs = 0; // timestamp of last physics tick
+    bool calibrated = false;
+};
+
 enum class PetState : uint8_t {
     IDLE,
     HAPPY,
@@ -32,5 +41,7 @@ private:
     void drawSprite16(int x, int y, const uint16_t* data);
     void drawCharacter();
     void drawAccessory(int x, int y);
+    void updatePhysics();
+    ImuState _imu;
     static const char* stateName(PetState s);
 };
