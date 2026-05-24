@@ -245,12 +245,12 @@ void Pet::updatePhysics() {
     // Dead zone: skip acceleration if tilt is negligible
     float sinRoll = sin(roll);
     float sinPitch = sin(pitch);
-    if (fabs(sinRoll) < IMU_DEAD_ZONE) sinRoll = 0;
-    if (fabs(sinPitch) < IMU_DEAD_ZONE) sinPitch = 0;
+    if (fabsf(sinRoll) < IMU_DEAD_ZONE) sinRoll = 0;
+    if (fabsf(sinPitch) < IMU_DEAD_ZONE) sinPitch = 0;
 
     // Acceleration from tilt
-    float ax = IMU_SENSITIVITY * sinRoll * 9.8f;
-    float ay = IMU_SENSITIVITY * sinPitch * 9.8f;
+    float ax = IMU_SENSITIVITY * sinRoll;
+    float ay = IMU_SENSITIVITY * sinPitch;
 
     // Integrate velocity
     _imu.velX += ax * dt;
@@ -278,7 +278,7 @@ void Pet::updatePhysics() {
     const int minX = -SPRITE_X;
     const int maxX = SCREEN_W - SPRITE_X - CHAR_DRAW_W;
     const int minY = -SPRITE_Y;
-    const int maxY = SCREEN_H - SPRITE_Y - CHAR_DRAW_W;
+    const int maxY = SCREEN_H - SPRITE_Y - CHAR_DRAW_H;
 
     if (_imu.posX < minX) {
         _imu.posX = minX;
