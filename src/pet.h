@@ -4,8 +4,9 @@
 struct ImuState {
     float posX = 0, posY = 0;        // current offset from center (px)
     float velX = 0, velY = 0;        // velocity (px/s)
-    float calibRoll = 0;             // zero-calibration baseline
-    float calibPitch = 0;
+    float calibAx = 0;               // accelerometer baseline X
+    float calibAy = 0;               // accelerometer baseline Y
+    float calibAz = 0;               // accelerometer baseline Z (gravity reference)
     unsigned long lastPhysicsMs = 0; // timestamp of last physics tick
     bool calibrated = false;
 };

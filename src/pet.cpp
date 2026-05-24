@@ -221,8 +221,11 @@ void Pet::drawAccessory(int x, int y) {
 void Pet::updatePhysics() {
     // Calibrate on first call: capture current IMU reading as zero
     if (!_imu.calibrated) {
-        _imu.calibRoll = M5.Imu.getRoll();
-        _imu.calibPitch = M5.Imu.getPitch();
+        float ax, ay, az;
+        M5.Imu.getAccel(&ax, &ay, &az);
+        _imu.calibAx = ax;
+        _imu.calibAy = ay;
+        _imu.calibAz = az;
         _imu.calibrated = true;
         return;
     }
@@ -238,23 +241,25 @@ void Pet::updatePhysics() {
     _imu.lastPhysicsMs = now;
     if (dt <= 0 || dt > IMU_MAX_DT) dt = IMU_MAX_DT;
 
-    // Read tilt relative to calibration
-    float roll = M5.Imu.getRoll() - _imu.calibRoll;
-    float pitch = M5.Imu.getPitch() - _imu.calibPitch;
+    // Read raw accelerometer (values in g ≈ sin(tilt_angle))
+    float ax, ay, az;
+    M5.Imu.getAccel(&ax, &ay, &az);
+
+    // Tilt = difference from calibrated baseline
+    float tiltX = ax - _imu.calibAx;
+    float tiltY = ay - _imu.calibAy;
 
     // Dead zone: skip acceleration if tilt is negligible
-    float sinRoll = sin(roll);
-    float sinPitch = sin(pitch);
-    if (fabsf(sinRoll) < IMU_DEAD_ZONE) sinRoll = 0;
-    if (fabsf(sinPitch) < IMU_DEAD_ZONE) sinPitch = 0;
+    if (fabsf(tiltX) < IMU_DEAD_ZONE) tiltX = 0;
+    if (fabsf(tiltY) < IMU_DEAD_ZONE) tiltY = 0;
 
-    // Acceleration from tilt
-    float ax = IMU_SENSITIVITY * sinRoll;
-    float ay = IMU_SENSITIVITY * sinPitch;
+    // Acceleration from tilt (raw values already encode sin(angle))
+    float ax_acc = IMU_SENSITIVITY * tiltX;
+    float ay_acc = IMU_SENSITIVITY * tiltY;
 
     // Integrate velocity
-    _imu.velX += ax * dt;
-    _imu.velY += ay * dt;
+    _imu.velX += ax_acc * dt;
+    _imu.velY += ay_acc * dt;
 
     // Apply damping
     float damp = 1.0f - IMU_DAMPING * dt;
